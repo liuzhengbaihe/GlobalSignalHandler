@@ -36,9 +36,14 @@ class SignalHandlerType(type):
                     signal.connect(cls.get_handler(signal), sender=model_kls)
 
 class SignalHandlerTask(Thread):
-    pass
+    def __init__(self, handler, **kwargs):
+        super(self.__class__, self).__init__(target=handler, kwargs=kwargs)
+
 
 class BaseHandler(object):
+    """
+    async is a flag to decide if using thread mechanism to run handler.
+    """
     __metaclass__ = SignalHandlerType
     async = True
 
@@ -55,6 +60,17 @@ class BaseHandler(object):
         return handlers.get(signal, None)
 
     @classmethod
+    def execute(cls, handler, **kwargs):
+        """
+        start running handler tasks based on async.
+        """
+        if cls.async:
+            task = SignalHandlerTask(handler, **kwargs)
+            task.start()
+        else:
+            handler(**kwargs)
+
+    @classmethod
     def _save_handler(cls, **kwargs):
         """
         Devide handlers into three types:'create', 'update', 'delete'.
@@ -62,44 +78,30 @@ class BaseHandler(object):
         """
         if kwargs['created']:
             kwargs['operation'] = SignalConfig.OPERATION_CREATE
-            handler = cls.create_handler
+            handler = getattr(cls, 'create_handler', cls.default_handler)
         else:
             kwargs['operation'] = SignalConfig.OPERATION_UPDATE
-            handler = cls.update_handler
-        if cls.async:
-            task = SignalHandlerTask(target=handler, kwargs=kwargs)
-            task.start()
-        else:
-            handler(**kwargs)
-        pass
+            handler = getattr(cls, 'update_handler', cls.default_handler)
+        cls.execute(handler=handler, **kwargs)
 
     @classmethod
     def _delete_handler(cls, **kwargs):
         kwargs['operation'] = SignalConfig.OPERATION_DELETE
-        if cls.async:
-            task = SignalHandlerTask(target=cls.delete_handler, kwargs=kwargs)
-            task.start()
-        else:
-            cls.delete_handler(**kwargs)
-        pass
+        handler = getattr(cls, 'delete_handler', cls.default_handler)
+        cls.execute(handler=handler, **kwargs)
 
     @classmethod
     def _bulk_update_handler(cls, **kwargs):
         kwargs['operation'] = SignalConfig.OPERATION_UPDATE
-        if cls.async:
-            task = SignalHandlerTask(target=cls.update_handler, kwargs=kwargs)
-            task.start()
-        else:
-            cls.update_handler(**kwargs)
-        pass
+        handler = getattr(cls, 'update_handler', cls.default_handler)
+        cls.execute(handler=handler, **kwargs)
 
     @classmethod
-    def _generic_handler(cls, **kwargs):
-        if cls.async:
-            task = SignalHandlerTask(target=cls.generic_handler, kwargs=kwargs)
-            task.start()
-        else:
-            cls.generic_handler(**kwargs)
+    def default_handler(cls, **kwargs):
+        """
+        This method is called if create_handler/update_handler/delete_handler of subclass is not defined.
+        """
+        pass
 
 class EmailHandler(BaseHandler):
     handling = {
@@ -131,41 +133,13 @@ class EmailHandler(BaseHandler):
         """
         pass
 
-    @classmethod
-    def generic_handler(cls, **kwargs):
-        """
-        generic handler for all operaiton
-        """
-        pass
-
 class ChangeLogHandler(BaseHandler):
     handling = {
         SignalConfig.MODEL_ALL: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE)
     }
 
     @classmethod
-    def create_handler(cls, **kwargs):
-        """
-        changelog triggered by create operation.
-        """
-        pass
-
-    @classmethod
-    def update_handler(cls, **kwargs):
-        """
-        changelog triggered by update operation.
-        """
-        pass
-
-    @classmethod
-    def delete_handler(cls, **kwargs):
-        """
-        changelog triggered by delete operation.
-        """
-        pass
-
-    @classmethod
-    def generic_handler(cls, **kwargs):
+    def default_handler(cls, **kwargs):
         """
         create snapshot of operated model
         """
