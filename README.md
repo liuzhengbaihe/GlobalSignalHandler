@@ -95,8 +95,8 @@ TCMSActionModel set GlobalSignalManager as its default manager. It will return G
 Since bulk_create does not return created object ids. GlobalSignalHandler does not support this case for now.
 For detailed info, please refer to django source code.
 
-[1]:/home/liuzheng/TCMS/globalsignalhandler/structure.jpg
-[2]:/home/liuzheng/TCMS/globalsignalhandler/signalconfig.jpg
-[3]:/home/liuzheng/TCMS/globalsignalhandler/signalhandlertype.jpg
-[4]:/home/liuzheng/TCMS/globalsignalhandler/class_diagram.jpg
-[5]:/home/liuzheng/TCMS/globalsignalhandler/workflow.jpg
+[1]:statics/structure.jpg
+[2]:statics/signalconfig.jpg
+[3]:statics/signalhandlertype.jpg
+[4]:statics/class_diagram.jpg
+[5]:statics/workflow.jpg
