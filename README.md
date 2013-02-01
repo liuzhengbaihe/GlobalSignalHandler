@@ -1,57 +1,66 @@
-# GlobalSignalProcessor
+# GlobalSignalHandler
 ## 1. Description
-GlobalSignalProcessor is designed as an app to build a centrial signal listener based on TCMS models.
-Then for signals, a centrial handler will route signal to relative handler. Every handler will create a task
-and implement the downstream functionality like Email Notification and ChangeLog.
+GlobalSignalHandler is designed as an app to build a centrial signal listener over TCMS models.
+For global signals, a centrial handler will route them to relative handlers. Every handler will create a task
+and implement the specific feature like Email Notification and ChangeLog function.
 ## 2. Features
-GlobalSignalProcessor can provide centrial signal listener and centrial signal handler for a project.
+GlobalSignalHandler can provide centrial signal listener and centrial signal handler for a project.
 It can be introduced as a generic signal solution for any django projects. Its features list as below:
 
  1. Provide a configurable way for developers to decide which models and what operations need listened.
 
- 2. Global listener can listen all the data operation which is through ORM.(create, delete, update, bulk_update)
+ 2. Global listener can listen all the data operations which run through ORM.(create, delete, update, bulk_update)
 
- 3. Provide detailed operation info for handler.(model, instances, operation type)
+ 3. Provide detailed operation info for handler.(model, instances, operation type and other specific info.)
 
  4. Build a base handler to restrict the definition of all subclasses, and provide the common actions. 
 
- 5. Introduce async mode when handling massive signals to make signals not blocking.
+ 5. Introduce async mechanism when handling massive signals to make sure signals are not blocking.
  
-## 3. Implementation
-###3.1 Design Structure
-The design of this app is simple.  GlobalSignalProcessor connect sender(model) to receiver(handler) one time to build a globalsignal listener. Considering there may be many functions work based on signals. BaseHandler has abstracted all the possible common actions and pre-process origin signals to provide a neat interface for subclasses.
+## 3. Design Structure
+The design of this app is simple. To build a global listener, GlobalSignalHandler connect configured senders(models) to receivers(handlers) for configured signals when EmailHandler and ChangLogHandler are in initialization. Considering there may be many features working based on signals. BaseHandler has abstracted all the possible common actions and pre-processed origin signals to provide a neat interface for subclasses.
 
-![Alt text](/home/liuzheng/TCMS/globalsignalprocessor/structure.jpg)
-
-### 3.2 Code Workflow
+![Alt structure][1]
+## 4. Implementation
 This app defined six classes.
 
 1. SignalConfig
 
-    SignalConfig defines the signals and operation types which will be used for custom configuration.
+    SignalConfig defines the signals and operation types which will be used for custom configuration.Custom configuration is defined base on function handlers.
+
+    ![Alt signalconfig][2]
+
 2. SignalHandlerType
 
-    SignalHandlerType are defined to connect models with handlers based on custom configuration of downstream functions(EmailHandler, ChangeLogHandler and so on).
-* SignalHandlerTask
-    
-    SignalHandlerTask inherit from threading.Thread. It's used for async handling. 
-* BaseHandler
+    SignalHandlerType are defined as metaclass of handlers. This class is used for connecting configured models with handlers for configured signals when a specific Handler class is in initialization.
 
-    BaseSignalHandler defined a base handler of all function handlers. It will classify signals and call the specific implementation of subclasses.
-* EmailHandler
-    
-    EmailHandler and ChangeLogHandler are subclasses of BaseHandler. They defines handlers and implement the specific features.
-* ChangeLogHandler
-    
-    Same as EmailHandler
-The code workflow show as following image:
+    ![Alt signalhandlertype][3] 
 
-![Alt text](file:///home/liuzheng/TCMS/globalsignalprocessor/workflow.jpg)
+3. SignalHandlerTask
+    
+    SignalHandlerTask inherits from threading.Thread. It's used for creating and running task. 
 
-## 4. Notes
-### 4.1 Custom managers which expect global signal listener should inherit from GlobalSignalManager. 
-GlobalSignalManager return the custom QuerySet(GlobalSignalQuerySet) to listen the update operation. To ensure that update operation can emit signals, GlobalSignalQuerySet overrides update method based on QuerySet.
-Custom managers which are defined as default manager of models should inherit from GlobalSignalManager. GlobalSignalManager are implemented as blew:
+4. BaseHandler
+
+    BaseSignalHandler defined a base handler for all function handlers. It will classify signals and call the specific implementation of subclasses.
+
+    ![Alt class_diagram][4]
+
+5. EmailHandler and ChangeLogHandler
+    
+    EmailHandler and ChangeLogHandler are subclasses of BaseHandler. They are used for implementing the specific features.
+
+The workflow shows as following image:
+
+![Alt workflow][5]
+
+For source code, please refer to this link:[https://code.engineering.redhat.com/gerrit/#/c/2834/][]
+[https://code.engineering.redhat.com/gerrit/#/c/2834/]: https://code.engineering.redhat.com/gerrit/#/c/2834/
+
+## 5. Notes
+###5.1 Custom managers which expect global signal listener should inherit from GlobalSignalManager. 
+GlobalSignalManager returns the custom QuerySet(GlobalSignalQuerySet) to listen the bulk update operation. To ensure that bulk update operation can emit signals, GlobalSignalQuerySet overrides update method of QuerySet.
+Custom managers which are defined as default manager of models should inherit from GlobalSignalManager. GlobalSignalManager is implemented as blew:
 
     class GlobalSignalQuerySet(models.query.QuerySet):
         """
@@ -68,9 +77,8 @@ Custom managers which are defined as default manager of models should inherit fr
         def get_query_set(self):
             return GlobalSignalQuerySet(self.model, using=self._db)
 
-### 4.2 Models which expect global signal listener should inherit from class TCMSActionModel.
-TCMSActionModel set GlobalSignalManager as its default manager. It will return GlobalSignalQuerySet to listen the bulk update operation.
-Source code show as below:
+### 5.2 Models which expect global signal listener should inherit from class TCMSActionModel.
+TCMSActionModel set GlobalSignalManager as its default manager. It will return GlobalSignalQuerySet to listen the bulk update operation.Source code show as below:
 
     class TCMSActionModel(models.Model, UrlMixin):
     """
@@ -83,6 +91,12 @@ Source code show as below:
     class Meta:
         abstract = True
 
-### 4.3 Please do not use method of 'bulk_create' if expecting global signal listener. 
-Since bulk_create does not return created object ids. globalSignalHandler does not support this case for now.
+### 5.3 Please do not use method of 'bulk_create' if expecting global signal listener. 
+Since bulk_create does not return created object ids. GlobalSignalHandler does not support this case for now.
 For detailed info, please refer to django source code.
+
+[1]:/home/liuzheng/TCMS/globalsignalhandler/structure.jpg
+[2]:/home/liuzheng/TCMS/globalsignalhandler/signalconfig.jpg
+[3]:/home/liuzheng/TCMS/globalsignalhandler/signalhandlertype.jpg
+[4]:/home/liuzheng/TCMS/globalsignalhandler/class_diagram.jpg
+[5]:/home/liuzheng/TCMS/globalsignalhandler/workflow.jpg
