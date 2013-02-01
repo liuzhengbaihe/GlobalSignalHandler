@@ -3,15 +3,12 @@ from threading import Thread
 from django.dispatch import Signal
 from django.db.models import signals
 
-from tcms.core.models import SIG_BULK_UPDATE
+from tcms.core.models import GlobalSignal
 from tcms.apps.testplans.models import TestPlan
 from tcms.apps.testcases.models import TestCase, TestCasePlan
 from tcms.apps.testruns.models import TestRun, TestCaseRun
 
 class SignalConfig(object):
-    SIG_SAVE = signals.post_save
-    SIG_DELETE = signals.pre_delete
-    SIG_BULK_UPDATE = SIG_BULK_UPDATE
     MODEL_ALL = 'ALL'
     OPERATION_CREATE = 'create'
     OPERATION_UPDATE = 'update'
@@ -53,9 +50,9 @@ class BaseHandler(object):
         get relative handler based on signal type.
         """
         handlers = {
-                SignalConfig.SIG_SAVE: cls._save_handler,
-                SignalConfig.SIG_BULK_UPDATE: cls._bulk_update_handler,
-                SignalConfig.SIG_DELETE: cls._delete_handler,
+                GlobalSignal.SIG_SAVE: cls._save_handler,
+                GlobalSignal.SIG_BULK_UPDATE: cls._bulk_update_handler,
+                GlobalSignal.SIG_DELETE: cls._delete_handler,
                 }
         return handlers.get(signal, None)
 
@@ -105,11 +102,11 @@ class BaseHandler(object):
 
 class EmailHandler(BaseHandler):
     handling = {
-        TestPlan: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE),
-        TestCase: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE),
-        TestCasePlan: (SignalConfig.SIG_SAVE,SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE),
-        TestRun: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE),
-        TestCaseRun: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE),
+        TestPlan: (GlobalSignal.SIG_SAVE, GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE),
+        TestCase: (GlobalSignal.SIG_SAVE, GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE),
+        TestCasePlan: (GlobalSignal.SIG_SAVE,GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE),
+        TestRun: (GlobalSignal.SIG_SAVE, GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE),
+        TestCaseRun: (GlobalSignal.SIG_SAVE, GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE),
     }
 
     @classmethod
@@ -135,7 +132,7 @@ class EmailHandler(BaseHandler):
 
 class ChangeLogHandler(BaseHandler):
     handling = {
-        SignalConfig.MODEL_ALL: (SignalConfig.SIG_SAVE, SignalConfig.SIG_BULK_UPDATE, SignalConfig.SIG_DELETE)
+        SignalConfig.MODEL_ALL: (GlobalSignal.SIG_SAVE, GlobalSignal.SIG_BULK_UPDATE, GlobalSignal.SIG_DELETE)
     }
 
     @classmethod
