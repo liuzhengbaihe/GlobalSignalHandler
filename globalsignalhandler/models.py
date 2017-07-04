@@ -35,7 +35,7 @@ class GlobalSignalQuerySet(models.query.QuerySet):
     """
     def update(self, **kwargs):
         instances = super(self.__class__, self).update(**kwargs)
-        GlobalSignals.SIG_BULK_UPDATE.send(sender=self.model, instance=self, **kwargs)
+        GlobalSignal.SIG_BULK_UPDATE.send(sender=self.model, instance=self, **kwargs)
         return instances
 
 class GlobalSignalManager(models.Manager):
